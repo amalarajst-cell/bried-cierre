@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Afiche para Imprimir - Desafío de Señales Viales</title>
+  <meta name="description" content="Afiche imprimible en hoja A4 con código QR para el evento Cierre de Jornada.">
+
+  <!-- Tipografía Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --ba-blue: #153244;
+      --ba-blue-light: #234d66;
+      --ba-yellow: #ffc600;
+      --ba-teal: #00b4a0;
+      --ba-teal-soft: #e6f7f5;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Archivo', sans-serif;
+      background: #eef2f6;
+      color: var(--ba-blue);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* Barra superior de acciones (no se imprime) */
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      background: #ffffff;
+      padding: 12px 20px;
+      border-radius: 50px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 30px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-print {
+      background: var(--ba-blue);
+      color: #ffffff;
+    }
+    .btn-print:hover {
+      background: #0d222f;
+    }
+
+    .btn-download {
+      background: var(--ba-yellow);
+      color: var(--ba-blue);
+    }
+    .btn-download:hover {
+      background: #e6b200;
+    }
+
+    .btn-back {
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .btn-back:hover {
+      background: #cbd5e1;
+    }
+
+    /* Hoja A4 estándar */
+    .sheet {
+      width: 210mm;
+      min-height: 297mm;
+      background: #ffffff;
+      padding: 15mm 16mm;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      text-align: center;
+      position: relative;
+    }
+
+    /* Marco decorativo */
+    .sheet-border {
+      position: absolute;
+      top: 8mm;
+      bottom: 8mm;
+      left: 8mm;
+      right: 8mm;
+      border: 3px solid var(--ba-blue);
+      border-radius: 12px;
+      pointer-events: none;
+    }
+    .sheet-border-inner {
+      position: absolute;
+      top: 10.5mm;
+      bottom: 10.5mm;
+      left: 10.5mm;
+      right: 10.5mm;
+      border: 1.5px solid var(--ba-yellow);
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .content {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 1;
+    }
+
+    /* Logo BA */
+    .logo-ba {
+      height: 65px;
+      width: auto;
+      margin-top: 5mm;
+      margin-bottom: 5mm;
+    }
+
+    /* Pastilla temática */
+    .badge-vial {
+      display: inline-block;
+      background: var(--ba-teal-soft);
+      border: 1.5px solid var(--ba-teal);
+      color: var(--ba-blue);
+      padding: 6px 20px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 5mm;
+    }
+
+    /* Título */
+    .title {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--ba-blue);
+      line-height: 1.2;
+      margin-bottom: 3mm;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ba-blue-light);
+      max-width: 480px;
+      line-height: 1.4;
+      margin-bottom: 6mm;
+    }
+
+    /* Contenedor QR */
+    .qr-box {
+      background: #ffffff;
+      padding: 14px;
+      border: 4px solid var(--ba-yellow);
+      outline: 2px solid var(--ba-blue);
+      border-radius: 16px;
+      margin-bottom: 6mm;
+      box-shadow: 0 4px 15px rgba(21, 50, 68, 0.08);
+      display: inline-block;
+    }
+
+    .qr-img {
+      width: 260px;
+      height: 260px;
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    /* Instrucción y URL */
+    .instruction-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--ba-blue);
+      margin-bottom: 3.5mm;
+    }
+
+    .url-box {
+      display: inline-block;
+      background: #f1f5f9;
+      border: 1.5px solid var(--ba-blue);
+      padding: 8px 18px;
+      border-radius: 30px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--ba-blue);
+      letter-spacing: -0.01em;
+      margin-bottom: 5mm;
+    }
+
+    /* Pie */
+    .footer {
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 3mm;
+      z-index: 1;
+    }
+
+    /* Estilos de Impresión */
+    @media print {
+      body {
+        background: #ffffff;
+        padding: 0;
+      }
+      .toolbar {
+        display: none !important;
+      }
+      .sheet {
+        box-shadow: none;
+        border-radius: 0;
+        width: 100%;
+        min-height: 100vh;
+        padding: 12mm 15mm;
+      }
+      .sheet-border {
+        top: 6mm;
+        bottom: 6mm;
+        left: 6mm;
+        right: 6mm;
+      }
+      .sheet-border-inner {
+        top: 8mm;
+        bottom: 8mm;
+        left: 8mm;
+        right: 8mm;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barra de acciones (no imprimible) -->
+  <aside class="toolbar" aria-label="Herramientas de impresión">
+    <button class="btn btn-print" onclick="window.print()">
+      🖨️ Imprimir / Guardar como PDF
+    </button>
+    <a href="assets/img/afiche_qr_imprimir.png" download="afiche_qr_blanco.png" class="btn btn-download">
+      📥 Descargar Imagen PNG
+    </a>
+    <a href="qr.html" class="btn btn-back">
+      ← Volver al Modo Pantalla
+    </a>
+  </aside>
+
+  <!-- Hoja Imprimible (A4) -->
+  <section class="sheet">
+    <div class="sheet-border"></div>
+    <div class="sheet-border-inner"></div>
+
+    <div class="content">
+      <!-- Logo Buenos Aires Ciudad -->
+      <img src="assets/img/logo_ba.png" alt="Buenos Aires Ciudad" class="logo-ba">
+
+      <!-- Badge institucional -->
+      <div class="badge-vial">EDUCACIÓN VIAL ESCOLAR</div>
+
+      <!-- Título de la actividad -->
+      <h1 class="title">Desafío de Señales Viales</h1>
+      <p class="subtitle">Escaneá el código QR con la cámara de tu celular para ingresar al juego</p>
+
+      <!-- Código QR de alta resolución -->
+      <div class="qr-box">
+        <img src="assets/img/qr_evento.png" alt="Código QR del Juego" class="qr-img">
+      </div>
+
+      <!-- Pasos / Indicaciones -->
+      <div class="instruction-row">
+        <span>📸</span>
+        <span>Apuntá la cámara de tu celular al código</span>
+      </div>
+
+      <!-- Enlace directo legible -->
+      <div class="url-box">
+        https://amalarajst-cell.github.io/bried-cierre/
+      </div>
+    </div>
+
+    <footer class="footer">
+      Buenos Aires Ciudad &nbsp;|&nbsp; Dirección General de Educación Vial &nbsp;|&nbsp; Cierre de Jornada
+    </footer>
+  </section>
+
+</body>
+</html>
