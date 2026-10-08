@@ -41,6 +41,7 @@
   const qrModal = document.getElementById("qr-modal");
   const qrCanvasWrap = document.getElementById("qr-canvas-wrap");
   const qrUrlDisplay = document.getElementById("qr-url-display");
+  const btnRefresh = document.getElementById("btn-refresh");
   const btnToggleProjector = document.getElementById("btn-toggle-projector");
   const btnExportCsv = document.getElementById("btn-export-csv");
   const btnClearResults = document.getElementById("btn-clear-results");
@@ -55,34 +56,87 @@
     return `${mins.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}.${centis.toString().padStart(2, "0")}`;
   }
 
-  // 1. Cargar resultados del servidor
-  async function fetchResults() {
+  // 1. Obtención de resultados desde múltiples fuentes (Nube REST + SDK + Servidor Local + Respaldo)
+  async function fetchFirestoreRest() {
+    try {
+      const cfg = (typeof window.getFirebaseConfig === "function") ? window.getFirebaseConfig() : window.DEFAULT_FIREBASE_CONFIG;
+      if (!cfg || !cfg.projectId || !cfg.apiKey) return [];
+      const res = await fetch(`https://firestore.googleapis.com/v1/projects/${cfg.projectId}/databases/(default)/documents/resultados?key=${cfg.apiKey}&_t=${Date.now()}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      if (!data.documents || !Array.isArray(data.documents)) return [];
+      return data.documents.map(doc => {
+        const f = doc.fields || {};
+        return {
+          id: doc.name ? doc.name.split("/").pop() : "",
+          nombre: f.nombre?.stringValue || "",
+          mail: f.mail?.stringValue || "",
+          aciertos: parseInt(f.aciertos?.integerValue || 0, 10),
+          totalPreguntas: parseInt(f.totalPreguntas?.integerValue || 10, 10),
+          tiempoSegundos: parseFloat(f.tiempoSegundos?.doubleValue || f.tiempoSegundos?.integerValue || 0),
+          tiempoTexto: f.tiempoTexto?.stringValue || "",
+          fecha: f.fecha?.stringValue || doc.createTime || "",
+          timestamp: parseInt(f.timestamp?.integerValue || 0, 10)
+        };
+      }).filter(item => item.nombre);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function fetchLocalServer() {
     try {
       const res = await fetch("/api/results?_t=" + Date.now());
       if (res.ok) {
-        const data = await res.json();
-        processResults(data);
-        if (liveIndicator) {
-          liveIndicator.textContent = "● En Línea (Actualizado)";
-          liveIndicator.style.color = "var(--color-accent)";
-        }
-        return;
+        return await res.json();
       }
-    } catch (e) {
-      // Fallback a localStorage si el servidor HTTP no está respondiendo
-      console.warn("Servidor no respondió, usando datos locales:", e);
-    }
+    } catch (e) {}
+    return [];
+  }
 
-    // Cargar respaldo local
+  function fetchLocalStorage() {
     try {
-      const local = JSON.parse(localStorage.getItem("resultados_locales") || "[]");
-      processResults(local);
-      if (liveIndicator) {
-        liveIndicator.textContent = "● Modo Local";
-        liveIndicator.style.color = "var(--color-secondary)";
+      return JSON.parse(localStorage.getItem("resultados_locales") || "[]");
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Deduplicación inteligente: conserva la mejor partida de cada participante
+  function mergeAndDeduplicate(sources) {
+    const map = new Map();
+    sources.flat().forEach(item => {
+      if (!item || !item.nombre) return;
+      const key = (item.mail && item.mail.trim())
+        ? item.mail.trim().toLowerCase()
+        : `${(item.nombre || "").trim().toLowerCase()}_${item.tiempoSegundos}`;
+
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, item);
+      } else {
+        if ((item.aciertos > existing.aciertos) ||
+            (item.aciertos === existing.aciertos && (item.tiempoSegundos < existing.tiempoSegundos))) {
+          map.set(key, item);
+        }
       }
-    } catch (err) {
-      console.error("Error al leer datos locales:", err);
+    });
+    return Array.from(map.values());
+  }
+
+  // Sincronización completa periódica y manual
+  async function syncAllSources() {
+    const [cloudList, localList] = await Promise.all([
+      fetchFirestoreRest(),
+      fetchLocalServer()
+    ]);
+    const storageList = fetchLocalStorage();
+    const merged = mergeAndDeduplicate([cloudList, localList, storageList, allResults]);
+    processResults(merged);
+
+    if (liveIndicator) {
+      liveIndicator.textContent = `● Nube Activa (${merged.length} en vivo)`;
+      liveIndicator.style.color = "var(--color-accent)";
     }
   }
 
@@ -237,17 +291,6 @@
     if (qrUrlDisplay) {
       qrUrlDisplay.textContent = connectUrl;
     }
-
-    if (qrCanvasWrap && typeof QRCode === "function") {
-      qrCanvasWrap.innerHTML = "";
-      try {
-        const canvas = QRCode(connectUrl, { size: 240 });
-        qrCanvasWrap.appendChild(canvas);
-      } catch (err) {
-        console.error("Error al generar QR:", err);
-        qrCanvasWrap.textContent = "Error al renderizar código QR.";
-      }
-    }
   }
 
   if (btnShowQr) {
@@ -325,10 +368,11 @@
         snapshot.forEach((doc) => {
           list.push({ id: doc.id, ...doc.data() });
         });
-        console.log(`✓ Sincronizados ${list.length} resultados desde la nube`);
-        processResults(list);
+        const merged = mergeAndDeduplicate([list, allResults]);
+        console.log(`✓ Sincronizados ${merged.length} resultados`);
+        processResults(merged);
         if (liveIndicator) {
-          liveIndicator.textContent = `● Nube Activa (${list.length} en vivo)`;
+          liveIndicator.textContent = `● Nube Activa (${merged.length} en vivo)`;
           liveIndicator.style.color = "var(--color-accent)";
         }
       }, (err) => {
@@ -480,21 +524,30 @@
     });
   }
 
+  // Botón manual de refresco / actualización
+  if (btnRefresh) {
+    btnRefresh.addEventListener("click", async () => {
+      btnRefresh.textContent = "🔄 Cargando...";
+      await syncAllSources();
+      setTimeout(() => {
+        btnRefresh.textContent = "🔄 Actualizar";
+      }, 500);
+    });
+  }
+
   // 11. Escuchar BroadcastChannel para actualizaciones locales instantáneas
   if (window.BroadcastChannel) {
     const bc = new BroadcastChannel("jornada_channel");
     bc.onmessage = (msg) => {
       if (msg.data && msg.data.type === "NUEVO_RESULTADO") {
-        fetchResults();
+        syncAllSources();
       }
     };
   }
 
-  // Inicializar modo nube si está configurado, o modo servidor local
-  const hasCloud = setupCloudListener();
-  if (!hasCloud) {
-    fetchResults();
-    setInterval(fetchResults, 2500);
-  }
+  // Inicializar sincronización en tiempo real y respaldo periódico
+  setupCloudListener();
+  syncAllSources();
+  setInterval(syncAllSources, 3500);
   initQrCode();
 })();

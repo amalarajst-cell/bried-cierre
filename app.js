@@ -221,15 +221,23 @@
     showView("finish");
   }
 
-  // Envío al servidor y respaldo en localStorage / Firebase Nube
-  function enviarResultadoAlServidor(payload) {
+  // Envío garantizado al servidor / Firebase Nube (SDK + REST API de respaldo directo)
+  async function enviarResultadoAlServidor(payload) {
+    const syncStatusText = document.getElementById("sync-status-text");
+    const syncCheckIcon = document.querySelector(".sync-check-icon");
+    if (syncStatusText) {
+      syncStatusText.textContent = "Guardando tu resultado en el podio central...";
+    }
+    if (syncCheckIcon) {
+      syncCheckIcon.textContent = "⏳";
+    }
+
     // 1. Guardar siempre respaldo en localStorage por seguridad
     try {
       const historial = JSON.parse(localStorage.getItem("resultados_locales") || "[]");
       historial.push({ ...payload, fecha: new Date().toISOString() });
       localStorage.setItem("resultados_locales", JSON.stringify(historial));
 
-      // Si hay BroadcastChannel (para actualizar tabs abiertas del admin al instante)
       if (window.BroadcastChannel) {
         const bc = new BroadcastChannel("jornada_channel");
         bc.postMessage({ type: "NUEVO_RESULTADO", data: payload });
@@ -238,12 +246,13 @@
       console.warn("Error en localStorage:", e);
     }
 
-    // 2. Enviar a Firebase Firestore en la nube si está configurado
-    let savedInCloud = false;
+    let guardado = false;
+
+    // 2. Intentar vía Firebase SDK oficial
     try {
       const db = (typeof window.initFirebaseDB === "function") ? window.initFirebaseDB() : null;
       if (db) {
-        db.collection("resultados").add({
+        await db.collection("resultados").add({
           nombre: payload.nombre,
           mail: payload.mail,
           aciertos: payload.aciertos,
@@ -253,40 +262,75 @@
           detalles: payload.detalles,
           fecha: new Date().toISOString(),
           timestamp: Date.now()
-        }).then(() => {
-          savedInCloud = true;
-          console.log("✓ Resultado sincronizado en tiempo real con Firebase Firestore");
-          const syncStatusText = document.getElementById("sync-status-text");
-          if (syncStatusText) {
-            syncStatusText.textContent = "¡Resultado registrado con éxito en tiempo real en el panel central!";
-          }
-        }).catch(err => {
-          console.warn("Fallo al escribir en Firebase:", err);
         });
+        guardado = true;
+        console.log("✓ Sincronizado vía Firebase SDK");
       }
-    } catch (fbErr) {
-      console.warn("Firebase no activo:", fbErr);
+    } catch (sdkErr) {
+      console.warn("Firebase SDK falló o no disponible, usando REST API:", sdkErr);
     }
 
-    // 3. Enviar por HTTP POST a la API del servidor local si está activo
-    fetch("/api/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    })
-      .then(res => res.json())
-      .then(data => {
-        console.log("Resultado impactado exitosamente en el servidor:", data);
-        const syncStatusText = document.getElementById("sync-status-text");
-        if (syncStatusText) {
-          syncStatusText.textContent = "¡Resultado registrado con éxito en el panel central!";
+    // 3. Respaldo directo vía REST API de Firebase (funciona 100% nativo sin librerías externas)
+    if (!guardado) {
+      try {
+        const cfg = (typeof window.getFirebaseConfig === "function") ? window.getFirebaseConfig() : window.DEFAULT_FIREBASE_CONFIG;
+        if (cfg && cfg.projectId && cfg.apiKey) {
+          const restUrl = `https://firestore.googleapis.com/v1/projects/${cfg.projectId}/databases/(default)/documents/resultados?key=${cfg.apiKey}`;
+          const restBody = {
+            fields: {
+              nombre: { stringValue: payload.nombre },
+              mail: { stringValue: payload.mail },
+              aciertos: { integerValue: String(payload.aciertos) },
+              totalPreguntas: { integerValue: String(payload.totalPreguntas) },
+              tiempoSegundos: { doubleValue: Number(payload.tiempoSegundos) },
+              tiempoTexto: { stringValue: String(payload.tiempoTexto) },
+              fecha: { stringValue: new Date().toISOString() },
+              timestamp: { integerValue: String(Date.now()) }
+            }
+          };
+          const restRes = await fetch(restUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(restBody)
+          });
+          if (restRes.ok) {
+            guardado = true;
+            console.log("✓ Sincronizado vía Firebase REST API directo");
+          }
         }
-      })
-      .catch(err => {
-        if (!savedInCloud) {
-          console.warn("Servidor local no disponible:", err);
-        }
+      } catch (restErr) {
+        console.warn("Error en Firebase REST API:", restErr);
+      }
+    }
+
+    // 4. Servidor local si está disponible
+    try {
+      const srvRes = await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
+      if (srvRes.ok) {
+        guardado = true;
+      }
+    } catch (e) {}
+
+    // Actualizar interfaz del participante
+    if (syncStatusText && syncCheckIcon) {
+      if (guardado) {
+        syncCheckIcon.textContent = "✓";
+        syncCheckIcon.style.color = "#00e5c7";
+        syncStatusText.textContent = "¡Tu resultado ha impactado exitosamente en el panel central!";
+      } else {
+        syncCheckIcon.textContent = "⚠️";
+        syncCheckIcon.style.color = "#ffc600";
+        syncStatusText.innerHTML = `Conexión lenta al enviar. <button type="button" id="btn-reintentar-envio" style="margin-left:8px;padding:4px 10px;font-size:0.85rem;background:#ffc600;color:#153244;border:none;border-radius:4px;cursor:pointer;font-weight:700;">Reintentar</button>`;
+        const btnReintentar = document.getElementById("btn-reintentar-envio");
+        if (btnReintentar) {
+          btnReintentar.onclick = () => enviarResultadoAlServidor(payload);
+        }
+      }
+    }
   }
 
   // Botón para reiniciar si desea jugar de nuevo

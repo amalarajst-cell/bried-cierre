@@ -26,6 +26,10 @@
     </div>
 
     <div class="admin-actions">
+      <button type="button" id="btn-refresh" class="admin-btn admin-btn-turquoise" title="Actualizar datos ahora">
+        🔄 Actualizar
+      </button>
+
       <button type="button" id="btn-cloud-config" class="admin-btn admin-btn-turquoise" title="Sincronizar participantes por la nube (Firebase Firestore)">
         ☁️ Conectar Nube
       </button>
@@ -186,7 +190,7 @@
       <p class="subtitle" style="font-size: 0.95rem;">Escanea el código QR con la cámara de tu celular</p>
 
       <div class="qr-code-box" id="qr-canvas-wrap">
-        <!-- Canvas generado por QRCode.js -->
+        <img src="assets/img/qr_evento.png" alt="Código QR de la Actividad" style="width: 240px; height: 240px; display: block; margin: 0 auto; border-radius: 8px;">
       </div>
 
       <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.3rem;">O ingresa directamente desde el navegador a:</div>
@@ -259,9 +263,9 @@
   <!-- Firebase Cloud SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js"></script>
+  <script src="firebase-config.js?v=20261008_2"></script>
 
   <script src="qrcode.min.js"></script>
-  <script src="admin.js"></script>
+  <script src="admin.js?v=20261008_2"></script>
 </body>
 </html>
