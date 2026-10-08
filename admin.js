@@ -218,13 +218,14 @@
 
   // 6. Obtener URL de Red e Inicializar QR Code
   async function initQrCode() {
-    let connectUrl = window.location.origin;
+    let connectUrl = window.location.href.replace(/admin\.html.*$/, "");
+    if (!connectUrl.endsWith("/")) connectUrl += "/";
 
     try {
       const res = await fetch("/api/ip");
       if (res.ok) {
         const info = await res.json();
-        if (info && info.url) {
+        if (info && info.url && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
           connectUrl = info.url;
           serverUrl = info.url;
         }
