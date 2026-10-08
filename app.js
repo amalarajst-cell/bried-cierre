@@ -221,7 +221,7 @@
     showView("finish");
   }
 
-  // Envío al servidor y respaldo en localStorage
+  // Envío al servidor y respaldo en localStorage / Firebase Nube
   function enviarResultadoAlServidor(payload) {
     // 1. Guardar siempre respaldo en localStorage por seguridad
     try {
@@ -238,7 +238,37 @@
       console.warn("Error en localStorage:", e);
     }
 
-    // 2. Enviar por HTTP POST a la API del servidor
+    // 2. Enviar a Firebase Firestore en la nube si está configurado
+    let savedInCloud = false;
+    try {
+      const db = (typeof window.initFirebaseDB === "function") ? window.initFirebaseDB() : null;
+      if (db) {
+        db.collection("resultados").add({
+          nombre: payload.nombre,
+          mail: payload.mail,
+          aciertos: payload.aciertos,
+          totalPreguntas: payload.totalPreguntas,
+          tiempoSegundos: payload.tiempoSegundos,
+          tiempoTexto: payload.tiempoTexto,
+          detalles: payload.detalles,
+          fecha: new Date().toISOString(),
+          timestamp: Date.now()
+        }).then(() => {
+          savedInCloud = true;
+          console.log("✓ Resultado sincronizado en tiempo real con Firebase Firestore");
+          const syncStatusText = document.getElementById("sync-status-text");
+          if (syncStatusText) {
+            syncStatusText.textContent = "¡Resultado registrado con éxito en tiempo real en el panel central!";
+          }
+        }).catch(err => {
+          console.warn("Fallo al escribir en Firebase:", err);
+        });
+      }
+    } catch (fbErr) {
+      console.warn("Firebase no activo:", fbErr);
+    }
+
+    // 3. Enviar por HTTP POST a la API del servidor local si está activo
     fetch("/api/submit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -253,10 +283,8 @@
         }
       })
       .catch(err => {
-        console.warn("No se pudo conectar directamente con /api/submit (modo local activo):", err);
-        const syncStatusText = document.getElementById("sync-status-text");
-        if (syncStatusText) {
-          syncStatusText.textContent = "Resultado guardado correctamente en tu dispositivo.";
+        if (!savedInCloud) {
+          console.warn("Servidor local no disponible:", err);
         }
       });
   }

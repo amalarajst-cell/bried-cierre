@@ -270,7 +270,146 @@
     });
   }
 
-  // 7. Modo Proyector (Pantalla Gigante para la Jornada)
+  // 7. Configuración de Base de Datos en la Nube (Firebase Firestore)
+  const btnCloudConfig = document.getElementById("btn-cloud-config");
+  const btnCloseCloud = document.getElementById("btn-close-cloud");
+  const cloudModal = document.getElementById("cloud-modal");
+  const cloudStatusText = document.getElementById("cloud-status-text");
+  const cfgApiKey = document.getElementById("cfg-api-key");
+  const cfgProjectId = document.getElementById("cfg-project-id");
+  const cfgAppId = document.getElementById("cfg-app-id");
+  const btnSaveCloud = document.getElementById("btn-save-cloud");
+  const btnDisconnectCloud = document.getElementById("btn-disconnect-cloud");
+
+  let cloudUnsubscribe = null;
+
+  function updateCloudStatusUI() {
+    const cfg = window.getFirebaseConfig ? window.getFirebaseConfig() : null;
+    if (cfg && cfg.projectId) {
+      if (cloudStatusText) {
+        cloudStatusText.innerHTML = `🟢 Conectado a <strong>${escapeHtml(cfg.projectId)}</strong> (Firebase Firestore)`;
+        cloudStatusText.style.color = "var(--color-accent)";
+      }
+      if (cfgApiKey) cfgApiKey.value = cfg.apiKey || "";
+      if (cfgProjectId) cfgProjectId.value = cfg.projectId || "";
+      if (cfgAppId) cfgAppId.value = cfg.appId || "";
+      if (liveIndicator) {
+        liveIndicator.textContent = "● Nube Activa (Tiempo Real)";
+        liveIndicator.style.color = "var(--color-accent)";
+      }
+    } else {
+      if (cloudStatusText) {
+        cloudStatusText.textContent = "● Modo Servidor Local / Sin Nube";
+        cloudStatusText.style.color = "var(--color-secondary)";
+      }
+    }
+  }
+
+  function setupCloudListener() {
+    if (cloudUnsubscribe) {
+      try { cloudUnsubscribe(); } catch (e) {}
+      cloudUnsubscribe = null;
+    }
+
+    const db = (typeof window.initFirebaseDB === "function") ? window.initFirebaseDB() : null;
+    if (!db) {
+      updateCloudStatusUI();
+      return false;
+    }
+
+    try {
+      updateCloudStatusUI();
+      cloudUnsubscribe = db.collection("resultados").onSnapshot((snapshot) => {
+        const list = [];
+        snapshot.forEach((doc) => {
+          list.push({ id: doc.id, ...doc.data() });
+        });
+        console.log(`✓ Sincronizados ${list.length} resultados desde la nube`);
+        processResults(list);
+        if (liveIndicator) {
+          liveIndicator.textContent = `● Nube Activa (${list.length} en vivo)`;
+          liveIndicator.style.color = "var(--color-accent)";
+        }
+      }, (err) => {
+        console.warn("Error en listener de Firestore:", err);
+      });
+      return true;
+    } catch (e) {
+      console.error("Error al iniciar listener de Firebase:", e);
+      return false;
+    }
+  }
+
+  if (btnCloudConfig) {
+    btnCloudConfig.addEventListener("click", () => {
+      updateCloudStatusUI();
+      cloudModal.classList.add("active");
+    });
+  }
+
+  if (btnCloseCloud) {
+    btnCloseCloud.addEventListener("click", () => {
+      cloudModal.classList.remove("active");
+    });
+  }
+
+  if (cloudModal) {
+    cloudModal.addEventListener("click", (e) => {
+      if (e.target === cloudModal) cloudModal.classList.remove("active");
+    });
+  }
+
+  if (btnSaveCloud) {
+    btnSaveCloud.addEventListener("click", () => {
+      const key = (cfgApiKey.value || "").trim();
+      const proj = (cfgProjectId.value || "").trim();
+      const app = (cfgAppId.value || "").trim();
+
+      if (!key || !proj) {
+        alert("Por favor completa al menos la API Key y el Project ID de Firebase.");
+        return;
+      }
+
+      const newConfig = {
+        apiKey: key,
+        authDomain: `${proj}.firebaseapp.com`,
+        projectId: proj,
+        storageBucket: `${proj}.appspot.com`,
+        appId: app
+      };
+
+      localStorage.setItem("firebase_config_custom", JSON.stringify(newConfig));
+      window._firebaseDB = null;
+      window._firebaseDBInitialized = false;
+
+      const ok = setupCloudListener();
+      if (ok) {
+        alert(`¡Conectado exitosamente con el proyecto ${proj}! Ahora los resultados de cualquier celular impactarán aquí en tiempo real.`);
+        cloudModal.classList.remove("active");
+      } else {
+        alert("Verifica las credenciales ingresadas. No se pudo inicializar la conexión.");
+      }
+    });
+  }
+
+  if (btnDisconnectCloud) {
+    btnDisconnectCloud.addEventListener("click", () => {
+      if (confirm("¿Deseas desconectar Firebase y volver a modo local?")) {
+        localStorage.removeItem("firebase_config_custom");
+        if (cloudUnsubscribe) {
+          try { cloudUnsubscribe(); } catch (e) {}
+          cloudUnsubscribe = null;
+        }
+        window._firebaseDB = null;
+        window._firebaseDBInitialized = false;
+        updateCloudStatusUI();
+        cloudModal.classList.remove("active");
+        fetchResults();
+      }
+    });
+  }
+
+  // 8. Modo Proyector (Pantalla Gigante para la Jornada)
   if (btnToggleProjector) {
     btnToggleProjector.addEventListener("click", () => {
       document.body.classList.toggle("projector-mode");
@@ -281,7 +420,7 @@
     });
   }
 
-  // 8. Exportar a CSV
+  // 9. Exportar a CSV (Compatible tanto con Servidor Local como con Nube)
   if (btnExportCsv) {
     btnExportCsv.addEventListener("click", () => {
       if (allResults.length === 0) {
@@ -289,17 +428,46 @@
         return;
       }
 
-      // Descargar directamente desde la API del servidor si está disponible
-      window.location.href = "/api/export";
+      // Generar descarga directa desde el navegador (funciona 100% en GitHub Pages y en local)
+      let csv = "\uFEFFPosicion,Nombre,Email,Aciertos,Total Preguntas,Tiempo (s),Tiempo Formateado,Fecha y Hora\r\n";
+      allResults.forEach((it, idx) => {
+        const escName = `"${(it.nombre || "").replace(/"/g, '""')}"`;
+        const escMail = `"${(it.mail || "").replace(/"/g, '""')}"`;
+        csv += `${idx + 1},${escName},${escMail},${it.aciertos},${it.totalPreguntas || 10},${it.tiempoSegundos || 0},${it.tiempoTexto || ""},"${it.fecha || ""}"\r\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "resultados_cierre_jornada.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     });
   }
 
-  // 9. Reiniciar / Borrar Datos
+  // 10. Reiniciar / Borrar Datos
   if (btnClearResults) {
     btnClearResults.addEventListener("click", async () => {
       const confirmacion = confirm("¿Estás seguro de que deseas REINICIAR los resultados?\nEsta acción borrará todas las partidas registradas hasta el momento.");
       if (!confirmacion) return;
 
+      // Borrar de Firebase si está conectado
+      const db = (typeof window.initFirebaseDB === "function") ? window.initFirebaseDB() : null;
+      if (db) {
+        try {
+          const snapshot = await db.collection("resultados").get();
+          const batch = db.batch();
+          snapshot.docs.forEach(doc => batch.delete(doc.ref));
+          await batch.commit();
+          console.log("✓ Colección de Firebase reseteada");
+        } catch (fbErr) {
+          console.warn("Error al borrar en Firebase:", fbErr);
+        }
+      }
+
+      // Borrar de servidor local si está activo
       try {
         await fetch("/api/results", { method: "DELETE" });
       } catch (e) {}
@@ -311,7 +479,7 @@
     });
   }
 
-  // 10. Escuchar BroadcastChannel para actualizaciones instantáneas
+  // 11. Escuchar BroadcastChannel para actualizaciones locales instantáneas
   if (window.BroadcastChannel) {
     const bc = new BroadcastChannel("jornada_channel");
     bc.onmessage = (msg) => {
@@ -321,8 +489,11 @@
     };
   }
 
-  // Iniciar ciclo de actualización periódica
-  fetchResults();
-  setInterval(fetchResults, 2500);
+  // Inicializar modo nube si está configurado, o modo servidor local
+  const hasCloud = setupCloudListener();
+  if (!hasCloud) {
+    fetchResults();
+    setInterval(fetchResults, 2500);
+  }
   initQrCode();
 })();

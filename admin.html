@@ -26,6 +26,10 @@
     </div>
 
     <div class="admin-actions">
+      <button type="button" id="btn-cloud-config" class="admin-btn admin-btn-turquoise" title="Sincronizar participantes por la nube (Firebase Firestore)">
+        ☁️ Conectar Nube
+      </button>
+
       <button type="button" id="btn-show-qr" class="admin-btn admin-btn-turquoise" title="Código QR para que los participantes se conecten">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="7" height="7"></rect>
@@ -189,6 +193,61 @@
       <div class="qr-url-text" id="qr-url-display">http://localhost:3000</div>
     </div>
   </div>
+
+  <!-- Modal de Configuración de Nube (Firebase Firestore) -->
+  <div class="modal-overlay" id="cloud-modal">
+    <div class="modal-card" style="max-width: 560px; text-align: left;">
+      <button type="button" class="modal-close-btn" id="btn-close-cloud">&times;</button>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.3rem;">Sincronización en la Nube</h2>
+      <p class="subtitle" style="font-size: 0.95rem; margin-bottom: 1.25rem;">Permite que los 250 participantes jueguen desde cualquier celular y red en GitHub Pages</p>
+
+      <div style="background: rgba(13, 34, 47, 0.7); border: 1px solid var(--color-primary-border); border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+        <div style="font-weight: 700; color: var(--color-accent); margin-bottom: 0.25rem;">Estado de Conexión:</div>
+        <div id="cloud-status-text" style="font-size: 1rem; color: var(--color-secondary);">
+          ● Modo Servidor Local / Sin Nube
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label class="form-label" for="cfg-api-key">Firebase API Key (apiKey)</label>
+        <input type="text" id="cfg-api-key" class="form-input" placeholder="Ej: AIzaSyA8...">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label class="form-label" for="cfg-project-id">Firebase Project ID (projectId)</label>
+        <input type="text" id="cfg-project-id" class="form-input" placeholder="Ej: cierre-jornada-123">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1.25rem;">
+        <label class="form-label" for="cfg-app-id">Firebase App ID (appId - opcional)</label>
+        <input type="text" id="cfg-app-id" class="form-input" placeholder="Ej: 1:123456789:web:abcdef...">
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
+        <button type="button" id="btn-save-cloud" class="admin-btn admin-btn-yellow" style="flex: 1; justify-content: center; padding: 0.85rem;">
+          Guardar y Conectar Nube
+        </button>
+        <button type="button" id="btn-disconnect-cloud" class="admin-btn admin-btn-danger" style="padding: 0.85rem;">
+          Desconectar
+        </button>
+      </div>
+
+      <details style="background: rgba(13, 34, 47, 0.5); border: 1px solid var(--color-primary-border); border-radius: var(--radius-md); padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--color-white);">
+        <summary style="cursor: pointer; font-weight: 700; color: var(--color-accent);">¿Cómo obtener estas credenciales gratis en 2 minutos?</summary>
+        <ol style="margin-top: 0.75rem; padding-left: 1.25rem; line-height: 1.6;">
+          <li>Entra a <a href="https://console.firebase.google.com" target="_blank" style="color: var(--color-secondary);">console.firebase.google.com</a> con tu cuenta Google.</li>
+          <li>Haz clic en <strong>"Crear un proyecto"</strong> (ej: <em>cierre-jornada</em>).</li>
+          <li>En el menú izquierdo ve a <strong>"Firestore Database"</strong> y haz clic en <strong>"Crear base de datos"</strong> en <em>"Modo de prueba"</em>.</li>
+          <li>En la rueda de engranaje (Configuración del proyecto), agrega una app Web y copia el <code>apiKey</code> y <code>projectId</code>.</li>
+        </ol>
+      </details>
+    </div>
+  </div>
+
+  <!-- Firebase Cloud SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
 
   <script src="qrcode.min.js"></script>
   <script src="admin.js"></script>
