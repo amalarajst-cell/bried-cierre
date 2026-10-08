@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Administración y Podio - Cierre de Jornada</title>
+  <meta name="description" content="Panel de administración y control en tiempo real para el cierre de jornada con 250 personas.">
+
+  <!-- Tipografía Archivo según manual de estilo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="admin-body">
+
+  <!-- Header del Administrador -->
+  <header class="admin-header">
+    <div class="header-brand">
+      <img src="assets/img/logo-vinculacion-CVfeGzCU.png" alt="Vinculación con el futuro" class="header-logo">
+      <div class="header-title-wrap">
+        <span class="header-event-name">Panel de Control & Podio en Vivo</span>
+        <span class="header-event-sub" id="live-indicator">● En Línea (Actualización automática)</span>
+      </div>
+    </div>
+
+    <div class="admin-actions">
+      <button type="button" id="btn-show-qr" class="admin-btn admin-btn-turquoise" title="Código QR para que los participantes se conecten">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+        Código QR
+      </button>
+
+      <button type="button" id="btn-toggle-projector" class="admin-btn admin-btn-yellow" title="Modo pantalla completa para proyectar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
+        Modo Proyector
+      </button>
+
+      <button type="button" id="btn-export-csv" class="admin-btn admin-btn-turquoise" title="Exportar a archivo Excel / CSV">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Exportar CSV
+      </button>
+
+      <button type="button" id="btn-clear-results" class="admin-btn admin-btn-danger" title="Reiniciar base de datos para nueva partida">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        Reiniciar
+      </button>
+
+      <a href="index.html" class="admin-btn admin-btn-turquoise" title="Ir a la vista de participante" target="_blank">
+        Ver App ↗
+      </a>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal del Panel -->
+  <main class="admin-container">
+
+    <!-- 1. Tarjetas de Métricas Estadísticas -->
+    <section class="metrics-grid">
+      <div class="metric-card highlight-card">
+        <div class="metric-card-label">Participantes Finalizados</div>
+        <div class="metric-card-val" id="metric-total-count">0</div>
+        <div class="metric-card-sub">Capacidad: 250 personas</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-card-label">Promedio de Aciertos</div>
+        <div class="metric-card-val" id="metric-avg-score">0.0 / 10</div>
+        <div class="metric-card-sub" id="metric-score-pct">0% de efectividad global</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-card-label">Mejor Tiempo Registrado</div>
+        <div class="metric-card-val" id="metric-best-time">--:--</div>
+        <div class="metric-card-sub" id="metric-best-name">Sin registros</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-card-label">Tiempo Promedio</div>
+        <div class="metric-card-val" id="metric-avg-time">--:--</div>
+        <div class="metric-card-sub">Por participante</div>
+      </div>
+    </section>
+
+    <!-- 2. Sección del Podio (Top 3 en Vivo) -->
+    <section class="podium-section">
+      <div class="podium-title-wrap">
+        <h2>Podio Oficial de la Jornada</h2>
+        <p class="subtitle">Ordenado por mayor cantidad de aciertos y menor tiempo de resolución</p>
+      </div>
+
+      <div class="podium-cards-grid" id="podium-cards-grid">
+        <!-- Puesto 2: Plata -->
+        <div class="podium-card podium-2nd" id="podium-card-2">
+          <div class="podium-badge">🥈</div>
+          <div class="podium-name" id="podium-2-name">En espera...</div>
+          <div class="podium-email" id="podium-2-email">--</div>
+          <div class="podium-score-pill" id="podium-2-score">-- aciertos</div>
+          <div class="podium-time" id="podium-2-time">--:--</div>
+        </div>
+
+        <!-- Puesto 1: Oro -->
+        <div class="podium-card podium-1st" id="podium-card-1">
+          <div class="podium-badge">👑 1º</div>
+          <div class="podium-name" id="podium-1-name">En espera...</div>
+          <div class="podium-email" id="podium-1-email">--</div>
+          <div class="podium-score-pill" id="podium-1-score">-- aciertos</div>
+          <div class="podium-time" id="podium-1-time">--:--</div>
+        </div>
+
+        <!-- Puesto 3: Bronce -->
+        <div class="podium-card podium-3rd" id="podium-card-3">
+          <div class="podium-badge">🥉</div>
+          <div class="podium-name" id="podium-3-name">En espera...</div>
+          <div class="podium-email" id="podium-3-email">--</div>
+          <div class="podium-score-pill" id="podium-3-score">-- aciertos</div>
+          <div class="podium-time" id="podium-3-time">--:--</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Tabla Completa de Participantes -->
+    <section class="table-section" id="table-section">
+      <div class="table-controls">
+        <h2 style="font-size: 1.4rem;">Listado Completo de Participantes</h2>
+
+        <div class="search-input-wrap">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="text" 
+            id="table-search-input" 
+            class="search-input" 
+            placeholder="Buscar por nombre o correo..."
+          >
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="participants-table">
+          <thead>
+            <tr>
+              <th style="width: 70px;">Pos</th>
+              <th>Participante</th>
+              <th>Correo Electrónico</th>
+              <th style="width: 140px;">Aciertos</th>
+              <th style="width: 130px;">Tiempo Total</th>
+              <th style="width: 170px;">Fecha y Hora</th>
+            </tr>
+          </thead>
+          <tbody id="participants-tbody">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 2.5rem; color: var(--color-text-muted);">
+                Aún no hay participantes registrados en la actividad.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal de Código QR para Conexión de Participantes -->
+  <div class="modal-overlay" id="qr-modal">
+    <div class="modal-card">
+      <button type="button" class="modal-close-btn" id="btn-close-qr">&times;</button>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.3rem;">Conéctate a la Actividad</h2>
+      <p class="subtitle" style="font-size: 0.95rem;">Escanea el código QR con la cámara de tu celular</p>
+
+      <div class="qr-code-box" id="qr-canvas-wrap">
+        <!-- Canvas generado por QRCode.js -->
+      </div>
+
+      <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.3rem;">O ingresa directamente desde el navegador a:</div>
+      <div class="qr-url-text" id="qr-url-display">http://localhost:3000</div>
+    </div>
+  </div>
+
+  <script src="qrcode.min.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

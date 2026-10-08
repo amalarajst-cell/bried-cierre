@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Desafío de Señales Viales - Cierre de Jornada</title>
+  <meta name="description" content="Actividad interactiva de reconocimiento de señales de tránsito para el cierre de jornada.">
+  
+  <!-- Tipografía Archivo según manual de estilo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Header Institucional -->
+  <header class="app-header">
+    <div class="header-brand">
+      <img src="assets/img/logo-vinculacion-CVfeGzCU.png" alt="Vinculación con el futuro" class="header-logo" id="main-brand-logo">
+      <div class="header-title-wrap">
+        <span class="header-event-name">Cierre de Jornada</span>
+        <span class="header-event-sub">Vinculación con el futuro</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal de Vistas -->
+  <main class="main-content">
+
+    <!-- ==========================================
+         VISTA 1: LOGUEO SENCILLO (Nombre y Mail)
+         ========================================== -->
+    <section id="view-login" class="card-glass login-card">
+      <span class="login-badge">Desafío Interactivo</span>
+      <h1>Bienvenido a la Actividad</h1>
+      <p class="subtitle">Pon a prueba tu agilidad visual y conocimientos viales</p>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="input-nombre" class="form-label">Nombre y Apellido</label>
+          <input 
+            type="text" 
+            id="input-nombre" 
+            class="form-input" 
+            placeholder="Ej: Lucía Martínez" 
+            required 
+            autocomplete="name"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="input-mail" class="form-label">Correo Electrónico</label>
+          <input 
+            type="email" 
+            id="input-mail" 
+            class="form-input" 
+            placeholder="Ej: lucia@correo.com" 
+            required 
+            autocomplete="email"
+          >
+        </div>
+
+        <button type="submit" id="btn-login-submit" class="btn-primary">
+          Ingresar a la Actividad
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </form>
+    </section>
+
+    <!-- ==========================================
+         VISTA 2: CARTEL / TEXTO PARA COMENZAR + 6 SEÑALES
+         ========================================== -->
+    <section id="view-start" class="card-glass start-screen-card" style="display: none;">
+      <div class="start-header-banner">
+        <h2 id="start-welcome-name">¡Todo listo para comenzar!</h2>
+        <p class="subtitle">Instrucciones de la Actividad</p>
+        <p>
+          A continuación se presentará una serie de <strong>10 preguntas</strong> sobre señales de tránsito. 
+          En cada pantalla verás la consigna y <strong>6 señales</strong> debajo: 
+          toca la señal correcta lo antes posible. 
+          Al seleccionarla, el sistema pasará <strong>automáticamente a la siguiente</strong>.
+          <br><br>
+          <em>¡Tu velocidad y precisión determinarán tu lugar en el ranking de la jornada!</em>
+        </p>
+      </div>
+
+      <div class="preview-grid-title">Muestra de señales que encontrarás</div>
+      
+      <!-- 6 Imágenes de Señales Debajo del Cartel Inicial -->
+      <div class="preview-signals-grid" id="preview-signals">
+        <div class="preview-signal-item">
+          <img src="assets/img/Zona_escolares-BVj_v7gh.png" alt="Zona Escolar">
+        </div>
+        <div class="preview-signal-item">
+          <img src="assets/img/Aerodromo-D0NCwVxU.png" alt="Aeródromo">
+        </div>
+        <div class="preview-signal-item">
+          <img src="assets/img/Baden-jxmBujiZ.png" alt="Badén">
+        </div>
+        <div class="preview-signal-item">
+          <img src="assets/img/Banderillero-DcXCvhmd.png" alt="Banderillero">
+        </div>
+        <div class="preview-signal-item">
+          <img src="assets/img/Calzada_resbaladiza-DkPmgZ9p.png" alt="Calzada Resbaladiza">
+        </div>
+        <div class="preview-signal-item">
+          <img src="assets/img/Cruce_ferroviario-liRKT5vr.png" alt="Cruce Ferroviario">
+        </div>
+      </div>
+
+      <button type="button" id="btn-start-activity" class="btn-primary" style="max-width: 420px; margin: 0 auto;">
+        Comenzar Ahora
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+      </button>
+    </section>
+
+    <!-- ==========================================
+         VISTA 3: LA ACTIVIDAD (PREGUNTA + 6 SEÑALES)
+         ========================================== -->
+    <section id="view-quiz" class="card-glass activity-card" style="display: none;">
+      <!-- Barra superior: Progreso y Cronómetro -->
+      <div class="activity-topbar">
+        <span class="question-counter" id="question-number">Pregunta 1 de 10</span>
+        <div class="stopwatch-badge" title="Tiempo transcurrido">
+          <div class="stopwatch-dot"></div>
+          <span id="stopwatch-timer">00:00.00</span>
+        </div>
+      </div>
+
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progress-bar-fill"></div>
+      </div>
+
+      <!-- Cuadro de la Pregunta -->
+      <div class="question-box">
+        <span class="question-theme-tag" id="question-theme">Zona escolar</span>
+        <h2 class="question-text" id="question-text">
+          ¿Qué señal preventiva te advierte sobre la cercanía de un establecimiento educativo y la posible presencia de menores cruzando la calzada?
+        </h2>
+        <div class="question-instruction">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 14 14"></polyline>
+          </svg>
+          Toca la imagen que corresponda para avanzar:
+        </div>
+      </div>
+
+      <!-- Cuadrícula con las 6 Señales Interactivas -->
+      <div class="options-grid" id="options-grid">
+        <!-- Generado dinámicamente con JavaScript -->
+      </div>
+    </section>
+
+    <!-- ==========================================
+         VISTA 4: FINALIZACIÓN DEL PARTICIPANTE
+         ========================================== -->
+    <section id="view-finish" class="card-glass finish-card" style="display: none;">
+      <div class="trophy-icon-wrap">
+        🏆
+      </div>
+      <h2>¡Excelente Participación!</h2>
+      <div class="participant-name-highlight" id="finish-name">Participante</div>
+
+      <div class="results-stats-row">
+        <div class="result-stat-box">
+          <div class="result-stat-label">Aciertos</div>
+          <div class="result-stat-val accent-yellow" id="finish-score">10 / 10</div>
+        </div>
+        <div class="result-stat-box">
+          <div class="result-stat-label">Tiempo Total</div>
+          <div class="result-stat-val" id="finish-time">00:34.20</div>
+        </div>
+      </div>
+
+      <div class="sync-status-box">
+        <span class="sync-check-icon">✓</span>
+        <span id="sync-status-text">Tu resultado ha impactado exitosamente en el panel central.</span>
+      </div>
+
+      <p style="margin-bottom: 1.5rem; font-size: 0.95rem; color: var(--color-text-muted);">
+        ¡Sigue la proyección en la pantalla gigante de la sala para ver el podio de ganadores al cierre de la jornada!
+      </p>
+
+      <button type="button" id="btn-retry" class="btn-secondary">
+        Realizar otra prueba
+      </button>
+    </section>
+
+  </main>
+
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
